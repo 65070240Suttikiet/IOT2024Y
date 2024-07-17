@@ -1,3 +1,4 @@
+from math import e
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -31,31 +32,64 @@ app.add_middleware(
 
 # https://fastapi.tiangolo.com/tutorial/sql-databases/#crud-utils
 
-@router_v1.get('/books')
-async def get_books(db: Session = Depends(get_db)):
-    return db.query(models.Book).all()
+@router_v1.get('/students')
+async def get_students(db: Session = Depends(get_db)):
+    return db.query(models.Student).all()
 
-@router_v1.get('/books/{book_id}')
-async def get_book(book_id: int, db: Session = Depends(get_db)):
-    return db.query(models.Book).filter(models.Book.id == book_id).first()
+@router_v1.get('/students/{student_id}')
+async def get_student(student_id: int, db: Session = Depends(get_db)):
+    return db.query(models.Student).filter(models.Student.student_id == student_id).first()
 
-@router_v1.post('/books')
-async def create_book(book: dict, response: Response, db: Session = Depends(get_db)):
-    # TODO: Add validation
-    newbook = models.Book(title=book['title'], author=book['author'], year=book['year'], is_published=book['is_published'])
-    db.add(newbook)
+@router_v1.post('/students')
+async def create_student(student: dict, response: Response, db: Session = Depends(get_db)):
+    newstudent = models.Student(firstname=student['firstname'], lastname=student['lastname'], birth_day=student['birth_day'], age=student['age'], sex=student['sex'])
+    db.add(newstudent)
     db.commit()
-    db.refresh(newbook)
+    db.refresh(newstudent)
     response.status_code = 201
-    return newbook
+    return newstudent
 
-# @router_v1.patch('/books/{book_id}')
-# async def update_book(book_id: int, book: dict, db: Session = Depends(get_db)):
-#     pass
+@router_v1.put('/students/{student_id}')
+async def update_student(student_id: int, response: Response, student: dict, db: Session = Depends(get_db)):
+    db_student = db.query(models.Student).filter(models.Student.student_id == student_id).first()
+    if db_student:
+        db_student.firstname = student['firstname']
+        db_student.lastname = student['lastname']
+        db_student.birth_day = student['birth_day']
+        db_student.age = student['age']
+        db_student.sex = student['sex']
+        db.commit()
+        db.refresh(db_student)
+        return {
+            'message': f'Student {student_id} updated successfully'
+        }
+    else:
+        response.status_code = 404
+        return {
+            'message': f'Student {student_id} not found'
+        }
+@router_v1.delete('/students/{student_id}')
+async def delete_student(student_id: int, response: Response, db: Session = Depends(get_db)):
+    student = db.query(models.Student).filter(models.Student.student_id == student_id).first()
+    if student:
+        db.delete(student)
+        db.commit()
+        return {
+            'message': f'Student deleted {student_id} successfully'
+        }
+    else:
+        response.status_code = 404
+        return {
+            'message': f'Student {student_id} not found'
+        }
 
-# @router_v1.delete('/books/{book_id}')
-# async def delete_book(book_id: int, db: Session = Depends(get_db)):
-#     pass
+@router_v1.patch('/books/{book_id}')
+async def update_book(book_id: int, book: dict, db: Session = Depends(get_db)):
+    pass
+
+@router_v1.delete('/books/{book_id}')
+async def delete_book(book_id: int, db: Session = Depends(get_db)):
+    pass
 
 app.include_router(router_v1)
 
