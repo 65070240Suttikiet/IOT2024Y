@@ -83,17 +83,58 @@ async def delete_student(student_id: int, response: Response, db: Session = Depe
             'message': f'Student {student_id} not found'
         }
 
+
 @router_v1.patch('/books/{book_id}')
 async def update_book(book_id: int, book: dict, db: Session = Depends(get_db)):
-    pass
+    db_book = db.query(models.Book).filter(models.Book.id == book_id).first()
+    if db_book:
+        db_book.title = book['title']
+        db_book.author = book['author']
+        db_book.year = book['year']
+        db_book.is_published = book['is_published']
+        db.commit()
+        db.refresh(db_book)
+        return db_book
+    else:
+        return {
+            'message': f'Book {book_id} not found'
+        }
 
 @router_v1.delete('/books/{book_id}')
 async def delete_book(book_id: int, db: Session = Depends(get_db)):
-    pass
+    book = db.query(models.Book).filter(models.Book.id == book_id).first()
+    if book:
+        db.delete(book)
+        db.commit()
+        return {
+            'message': f'Book deleted {book_id} successfully'
+        }
+    else:
+        return {
+            'message': f'Book {book_id} not found'
+        }
+
+
+@router_v1.get('/books')
+async def get_books(db: Session = Depends(get_db)):
+    return db.query(models.Book).all()
+
+@router_v1.get('/books/{book_id}')
+async def get_book(book_id: int, db: Session = Depends(get_db)):
+    return db.query(models.Book).filter(models.Book.id == book_id).first()
+
+@router_v1.post('/books')
+async def create_book(book: dict, response: Response, db: Session = Depends(get_db)):
+    # TODO: Add validation
+    newbook = models.Book(title=book['title'], author=book['author'], year=book['year'], is_published=book['is_published'])
+    db.add(newbook)
+    db.commit()
+    db.refresh(newbook)
+    response.status_code = 201
+    return newbook
 
 app.include_router(router_v1)
 
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(app)
-
